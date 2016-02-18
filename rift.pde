@@ -7,6 +7,8 @@ import javax.sound.midi.MidiMessage;
 import javax.sound.midi.ShortMessage;
 
 import java.nio.ByteBuffer;
+
+import org.java_websocket.WebSocket;
 import org.java_websocket.client.WebSocketClient;
 
 import java.net.URI;
@@ -17,12 +19,10 @@ import java.util.HashMap;
 import java.util.Map;
 
 OPC opc;
-Client client;
 MidiBroadcaster midiBroadcaster;
+// ConnectionManager connectionManager;
+MidiServer midiServer;
 SceneManager sceneManager;
-
-Object renderLock = new Object();
-Object reconnectLock = new Object();
 
 void setup() {
   size(600, 600);
@@ -30,11 +30,16 @@ void setup() {
  
   midiBroadcaster = new MidiBroadcaster();
   try {
-    client = new Client(new URI("http://localhost:6660"), midiBroadcaster);
-    client.connect();
-  } catch (URISyntaxException ex) {
+    midiServer = new MidiServer(midiBroadcaster, 6660);
+  } catch (UnknownHostException ex) {
     ex.printStackTrace();
   }
+  midiServer.start();
+  //try {
+  //  connectionManager = new ConnectionManager(new URI("http://localhost:6660"), midiBroadcaster);
+  //} catch (URISyntaxException ex) {
+  //  ex.printStackTrace();
+  //}
   
   sceneManager = new SceneManager(opc);
   sceneManager.changeProgram(1);
@@ -44,13 +49,6 @@ void setup() {
 
 void draw() {
   sceneManager.draw();
-}
-
-void reconnect(URI uri) {
-  synchronized(reconnectLock) {
-    client = new Client(uri, midiBroadcaster);
-    client.connect();
-  }
 }
 
 private class SceneManager implements Receiver {
@@ -122,56 +120,100 @@ private class SceneManager implements Receiver {
   }
 }
 
-private class Client extends WebSocketClient {
-  private MidiBroadcaster midiBroadcaster;
 
-  public Client(URI serverURI, MidiBroadcaster midiBroadcaster) {
-    super(serverURI);
+
+private class ConnectionManager {
+  
+  private static final int RECONNECT_DELAY = 5000;
+  
+  private Client client = null;
+  protected final URI uri;
+  protected final MidiBroadcaster midiBroadcaster;
+  
+  public ConnectionManager(URI uri, MidiBroadcaster midiBroadcaster) {
+    this.uri = uri;
     this.midiBroadcaster = midiBroadcaster;
-  }
 
-  @Override
-  public void onOpen(ServerHandshake handshakeData) {
-    System.out.println("Connection opened");
-  }
-
-  @Override
-  public void onMessage(String message) {
-    System.out.println("Received: " + message);
+    // Spawn connection threads
+    Timer timer = new Timer(RECONNECT_DELAY, new MaintainConnectionActionListener(this));
+    timer.setInitialDelay(10);
+    timer.start();
   }
   
-  @Override
-  public void onMessage(ByteBuffer bytes) {
-    byte[] bytesArray = new byte[bytes.remaining()];
-    bytes.get(bytesArray);
-    
-    try {
-      this.midiBroadcaster.transmit(bytesArray);
-    } catch (InvalidMidiDataException ex) {
-      ex.printStackTrace();
-    }
-  }
-
-  @Override
-  public void onClose(int code, String reason, boolean remote) {
-    // The codecodes are documented in class org.java_websocket.framing.CloseFrame
-    System.out.println("Connection closed by " + (remote ? "remote peer" : "us"));
-    new Timer(5000, new ReconnectActionListener(this.getURI())).start();
-  }
-
-  @Override
-  public void onError(Exception ex) {
-    ex.printStackTrace();
+  /**
+   * Reconnect (synchronously) to the server.
+   * @return whether the reconnect was successful.
+   */
+  public synchronized void checkConnection() {
+    if (this.client == null || 
+      this.client.getReadyState() != WebSocket.READYSTATE.CONNECTING && 
+      this.client.getReadyState() != WebSocket.READYSTATE.OPEN) {    
+      if (this.client != null) {
+        this.client.close();
+      }
+      this.client = new Client(this);
+      try {
+        this.client.connectBlocking();
+      } catch (InterruptedException ex) {
+        this.client = null;
+      }
+    }    
   }
   
-  private class ReconnectActionListener implements ActionListener {
-    private URI uri;    
-    public ReconnectActionListener(URI uri) {
-      this.uri = uri;
+  private class Client extends WebSocketClient {
+    private ConnectionManager parent;
+  
+    public Client(ConnectionManager parent) {
+      super(parent.uri);
+      this.parent = parent;
+    }
+  
+    @Override
+    public void onOpen(ServerHandshake handshakeData) {
+      System.out.println("Connection opened");
+    }
+  
+    @Override
+    public void onMessage(String message) {
+      System.out.println("Received: " + message);
     }
     
+    @Override
+    public void onMessage(ByteBuffer bytes) {
+      byte[] bytesArray = new byte[bytes.remaining()];
+      bytes.get(bytesArray);
+      
+      try {
+        this.parent.midiBroadcaster.transmit(bytesArray);
+      } catch (InvalidMidiDataException ex) {
+        ex.printStackTrace();
+      }
+    }
+  
+    @Override
+    public void onClose(int code, String reason, boolean remote) {
+      // The codecodes are documented in class org.java_websocket.framing.CloseFrame
+      System.out.println("Connection closed by " + (remote ? "remote peer" : "us"));
+    }
+  
+    @Override
+    public void onError(Exception ex) {
+      if (ex instanceof java.net.ConnectException) {
+        System.out.println("Problem connecting");
+      } else {
+        ex.printStackTrace();
+      }
+    }
+  }
+  
+  // Reconnect class for timer.
+  private class MaintainConnectionActionListener implements ActionListener {
+    private final ConnectionManager parent;
+    public MaintainConnectionActionListener(ConnectionManager parent) {
+      this.parent = parent;
+    }
     public void actionPerformed(ActionEvent event) {
-      reconnect(uri);
+      this.parent.checkConnection();
     }
   }
 }
