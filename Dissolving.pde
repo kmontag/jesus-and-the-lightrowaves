@@ -26,7 +26,7 @@ public class Dissolving extends LEDStripScene {
       startTime = System.currentTimeMillis();
     }
     
-    public void draw(){//PGraphics graphics) {
+    public void draw(){
       noFill();
       long currentTime = System.currentTimeMillis();
       for (int i = 1; i < radius; i++) {
@@ -114,14 +114,9 @@ public class Dissolving extends LEDStripScene {
     //  noteOff(1, 50, 0);
     //}
 
-    //PGraphics noteGraphics = createGraphics(width, height);
-    //noteGraphics.beginDraw();
-    //noteGraphics.blendMode(LIGHTEST);
     for (Note note : notes) {
-      note.draw();//noteGraphics);
+      note.draw();
     }
-    //noteGraphics.endDraw();
-    //image(noteGraphics, 0, 0);
   }
   
   // Adapted from https://processing.org/examples/lineargradient.html

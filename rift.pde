@@ -27,13 +27,19 @@ void setup() {
   midiServer.start();
   
   sceneManager = new SceneManager(opc);
-  sceneManager.changeProgram(1);
+  //sceneManager.changeProgram(1);
   
   midiBroadcaster.addReceiver(sceneManager);
 }
 
 void draw() {
   sceneManager.draw();
+}
+
+private class DefaultScene extends LEDStripScene {
+  public void draw() {
+    background(0);
+  }
 }
 
 private class SceneManager implements Receiver {
@@ -48,18 +54,18 @@ private class SceneManager implements Receiver {
 
     // Set up program list
     Map<Integer, Scene> m = new HashMap<Integer, Scene>(); // program number -> scene class name
-    m.put(1, new Dissolving());  
+
+    m.put(0, new DefaultScene());
+    m.put(1, new Dissolving());
+    m.put(2, new JustTalkAboutIt());
+    
     programs = Collections.unmodifiableMap(m); // Make immutable
 
     changeProgram(0);
   }
   
   synchronized public void draw() {
-    if (currentScene == null) {
-      background(0);
-    } else {
-      currentScene.draw();
-    }
+    currentScene.draw();
   }
 
   /**
@@ -69,11 +75,15 @@ private class SceneManager implements Receiver {
    */
   synchronized public void changeProgram(int programNumber) {
     Scene scene = programs.get(programNumber);
+    if (scene == null) {
+       scene = programs.get(0);
+       programNumber = 0;
+    }
  
     // Clean up the current program, if any
     if (currentScene != null) {
       midiBroadcaster.removeReceiver(currentScene);
-      currentScene.teardown();      
+      currentScene.teardown();
       currentScene = null;
     }
     

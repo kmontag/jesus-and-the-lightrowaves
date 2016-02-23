@@ -23,9 +23,10 @@ public class MidiBroadcaster {
   /**
    * Send a raw-bytes message with timestamp to all receivers.
    */
-  public void transmit(byte[] bytes, long timestamp) throws InvalidMidiDataException {
+  public synchronized void transmit(byte[] bytes, long timestamp) throws InvalidMidiDataException {
     MidiMessage message = this.midiMessage(bytes);
-    for (Receiver receiver : receivers) {
+    Set<Receiver> tempReceivers = new HashSet<Receiver>(receivers);
+    for (Receiver receiver : tempReceivers) {
       receiver.send(message, timestamp);
     }
   }
