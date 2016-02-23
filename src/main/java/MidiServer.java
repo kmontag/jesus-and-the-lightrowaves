@@ -1,5 +1,7 @@
 import java.net.InetSocketAddress;
 import java.net.UnknownHostException;
+import java.nio.ByteBuffer;
+import javax.sound.midi.InvalidMidiDataException;
 
 import org.java_websocket.WebSocket;
 import org.java_websocket.WebSocketImpl;

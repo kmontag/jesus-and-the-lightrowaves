@@ -1,0 +1,35 @@
+buildscript {
+  repositories { jcenter() }
+  dependencies {
+    classpath 'com.github.jengelman.gradle.plugins:shadow:1.2.3'
+  }
+}
+
+plugins {
+  id 'java'
+  id 'com.github.johnrengelman.shadow' version '1.2.3'
+}
+//apply plugin: 'java'
+//apply plugin: 'com.github.johnrengelman.shadow'
+
+// apply plugin: 'git-repo'
+
+//buildscript {
+//  repositories { mavenCentral() }
+//  dependencies {
+  //classpath 'org.batcha.gradle.plugins:git-dependencies:0.2'
+//    classpath group: 'com.layer', name: 'gradle-git-repo-plugin', version: '2.0.2'
+//  }
+//}
+
+repositories {
+  mavenCentral()
+  
+}
+
+dependencies {
+  compile 'org.java-websocket:Java-WebSocket:1.3.0'
+  //compile 'org.trifort.rootbeer:rootbeer1:1.2.3'
+  //compile(':punktiert:c081a7a2dd1e26e90010d8846f5231012ba92499').ext.git = 'https://github.com/djrkohler/punktiert.git'
+//  compile 'com.github.djrkohler.punktiert:
+}
