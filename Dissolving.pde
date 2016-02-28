@@ -31,8 +31,8 @@ public class Dissolving extends LEDStripScene {
       long currentTime = System.currentTimeMillis();
       for (int i = 1; i < radius; i++) {
         float r = float(i) / radius;
-        float sineOffset = -lerp(0, 2.0 * (float)Math.PI, (float)(currentTime % 2000) / 2000.0);
-        float sine = (float)Math.pow((1.0 + (float)Math.sin(lerp(0, 4.0 * (float)Math.PI, r) + sineOffset)) / 2.0, 1);
+        float sineOffset = -lerp(0, 3.0 * (float)Math.PI, (float)(currentTime % 2000) / 2000.0);
+        float sine = (float)Math.pow((2.0 + (float)Math.sin(lerp(0, 4.0 * (float)Math.PI, r) + sineOffset)) / 2.0, 1);
         float sineEffect = 1.0 - lerp(Math.min(0.2, sine), sine, r); // The sine doesn't start affecting the ellipse until the outside
         sineEffect = sine;
         float opacity = lerp(maxOpacity * sineEffect, 0, r);
