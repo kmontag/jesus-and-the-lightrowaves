@@ -15,9 +15,9 @@ MidiServer midiServer;
 SceneManager sceneManager;
 
 void setup() {
-  size(600, 600);
+  size(600, 600, P2D);
   opc = new OPC(this, "127.0.0.1", 7890);
- 
+
   midiBroadcaster = new MidiBroadcaster();
   try {
     midiServer = new MidiServer(midiBroadcaster, 6660);
@@ -25,10 +25,10 @@ void setup() {
     ex.printStackTrace();
   }
   midiServer.start();
-  
+
   sceneManager = new SceneManager(opc);
   //sceneManager.changeProgram(1);
-  
+
   midiBroadcaster.addReceiver(sceneManager);
 }
 
@@ -48,7 +48,7 @@ private class SceneManager implements Receiver {
 
   private Scene currentScene = null;
   private int currentProgramNumber;
-  
+
   public SceneManager(OPC opc) {
     this.opc = opc;
 
@@ -58,12 +58,12 @@ private class SceneManager implements Receiver {
     m.put(0, new DefaultScene());
     m.put(1, new Dissolving());
     m.put(2, new JustTalkAboutIt());
-    
+
     programs = Collections.unmodifiableMap(m); // Make immutable
 
-    changeProgram(0);
+    changeProgram(1);
   }
-  
+
   synchronized public void draw() {
     currentScene.draw();
   }
@@ -79,14 +79,14 @@ private class SceneManager implements Receiver {
        scene = programs.get(0);
        programNumber = 0;
     }
- 
+
     // Clean up the current program, if any
     if (currentScene != null) {
       midiBroadcaster.removeReceiver(currentScene);
       currentScene.teardown();
       currentScene = null;
     }
-    
+
     if (scene != null) {
       currentScene = scene;
       currentScene.setup(opc);
@@ -94,12 +94,12 @@ private class SceneManager implements Receiver {
       this.currentProgramNumber = programNumber;
     } else {
       this.currentProgramNumber = 0;
-    }    
+    }
   }
-  
+
   public void close() {
   }
-  
+
   public void send(MidiMessage message, long timestamp) {
     if (message instanceof ShortMessage) {
       ShortMessage m = (ShortMessage)message;
@@ -107,7 +107,7 @@ private class SceneManager implements Receiver {
         changeProgram(m.getData1());
       }
     }
-    
+
     // Forward to the current scene
     if (currentScene != null) {
       currentScene.send(message, timestamp);

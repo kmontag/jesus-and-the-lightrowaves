@@ -4,11 +4,12 @@ import punktiert.physics.*;
 
 public class Dissolving extends LEDStripScene {
 
-  final int NUM_BLACK_LIGHTS = 100;  
+  final int NUM_BLACK_LIGHTS = 100;
   private VPhysics blackLightPhysics;
+  private PShader seascape;
 
   Set<Note> notes = new HashSet<Note>();
-  
+
   private class Note {
     public final int pitch, velocity;
 
@@ -25,7 +26,7 @@ public class Dissolving extends LEDStripScene {
       maxOpacity = lerp(0, 0.3, float(velocity) / 127.0);
       startTime = System.currentTimeMillis();
     }
-    
+
     public void draw(){
       noFill();
       long currentTime = System.currentTimeMillis();
@@ -46,18 +47,18 @@ public class Dissolving extends LEDStripScene {
       }
     }
   }
-  
+
   public void setup(OPC opc) {
     super.setup(opc);
 
     //// Particle system
     // see https://github.com/djrkohler/punktiert/blob/master/examples/Behavior_BWander/Behavior_BWander.pde
     blackLightPhysics = new VPhysics();
-  
+
     BWorldBox boxx = new BWorldBox(new Vec(), new Vec(width, height, 500));
     boxx.setWrapSpace(false);
     blackLightPhysics.addBehavior(boxx);
-  
+
     for (int i = 0; i < NUM_BLACK_LIGHTS; i++) {
       //val for arbitrary radius
       float rad = random(2, width / 10);
@@ -67,33 +68,41 @@ public class Dissolving extends LEDStripScene {
       VParticle particle = new VParticle(pos, 1, rad);
       //add Collision Behavior
       particle.addBehavior(new BCollision());
-  
+
       particle.addBehavior(new BWander(13, 10, 10));
       //add particle to world
       blackLightPhysics.addParticle(particle);
     }
+
+    seascape = loadShader("seascape.glsl");
+    seascape.set("resolution", float(width), float(height));
   }
+
   public synchronized void draw() {
     background(color(0, 0, 0));
+    seascape.set("globalTime", millis() / 1000.0);
+    shader(seascape);
+    rect(0, 0, width, height);
+    if(true) { return; }
 
     //// Basic background
     color bassColor = #731A30;
     color padColor = #301A73;
     color lickColor = #1A735D;
-    
+
     int padBreakpoint = (int)(1.25 * width / 3);
     int lickBreakpoint = (int)((width / 3) * 2.35);
-    
+
     noStroke();
     fill(bassColor);
     rect(0, 0, padBreakpoint, height);
-    
+
     fill(padColor);
     rect(padBreakpoint, 0, lickBreakpoint - padBreakpoint, height);
-    
+
     fill(lickColor);
     rect(lickBreakpoint, 0, width - lickBreakpoint, height);
-    
+
     int gradientWidth = width / 20;
     verticalGradient(padBreakpoint, gradientWidth, bassColor, padColor);
     verticalGradient(lickBreakpoint, gradientWidth, padColor, lickColor);
@@ -106,7 +115,7 @@ public class Dissolving extends LEDStripScene {
         ellipse(p.x, p.y, i, i);
       }
     }
-    
+
     //if (new Random().nextInt(100) == 0) {
     //  noteOn(1, 50, 127);
     //}
@@ -118,12 +127,12 @@ public class Dissolving extends LEDStripScene {
       note.draw();
     }
   }
-  
+
   // Adapted from https://processing.org/examples/lineargradient.html
   private void verticalGradient(int center, int delta, color c1, color c2) {
 
     noFill();
-  
+
     for (int i = center - delta; i <= center + delta; i++) {
       float inter = map(i, center - delta, center + delta, 0, 1);
       color c = lerpColor(c1, c2, inter);
@@ -131,13 +140,13 @@ public class Dissolving extends LEDStripScene {
       line(i, 0, i, height);
     }
   }
-  
+
   @Override
   public synchronized void noteOn(int channel, int pitch, int velocity) {
     System.out.println(pitch);
     notes.add(new Note(pitch, velocity));
   }
-  
+
   @Override
   public synchronized void noteOff(int channel, int pitch, int velocity) {
     for (Iterator<Note> i = notes.iterator(); i.hasNext();) {
@@ -146,7 +155,7 @@ public class Dissolving extends LEDStripScene {
       }
     }
   }
-  
+
   @Override
   public synchronized void controllerChange(int channel, int number, int value) {
   }
